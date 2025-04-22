@@ -1,0 +1,254 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #1e222d; /* Slightly lighter dark */
+  color: #e1e1e1; /* Off-white */
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.App {
+  text-align: center;
+  padding: 10px 20px; /* Reduced padding */
+  max-width: 1600px; /* Allow wider layout */
+  margin: 0 auto;
+}
+
+.App-header {
+  background-color: #2a2e39;
+  padding: 15px 20px;
+  border-radius: 8px;
+  margin-bottom: 25px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+}
+
+.App-header h1 {
+    margin: 0;
+    font-size: 1.8em; /* Slightly smaller */
+    color: #61dafb; /* React blue */
+}
+
+.App-header p {
+    margin: 5px 0 0;
+    font-size: 0.9em;
+    color: #aaa;
+}
+
+.section {
+  background-color: #2a2e39; /* Consistent section background */
+  padding: 20px;
+  margin: 20px auto;
+  border-radius: 8px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+  border: 1px solid #3a3f4a;
+}
+
+.section h2 {
+    margin-top: 0;
+    border-bottom: 1px solid #4a4f5a;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    color: #e1e1e1;
+    font-size: 1.4em;
+}
+
+/* Layout for side-by-side Account Info and BTC Ticker */
+.data-columns {
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+    gap: 20px; /* Space between columns */
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.data-columns > .section { /* Target sections within the columns */
+    flex: 1; /* Allow sections to grow */
+    min-width: 300px; /* Minimum width before wrapping */
+    max-width: 600px; /* Optional max width */
+    margin: 0; /* Remove default section margin */
+}
+
+/* Table Styles */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  font-size: 0.85em; /* Smaller font for tables */
+  table-layout: fixed;
+}
+
+table thead {
+  background-color: #3a3f4a;
+}
+
+table th,
+table td {
+  border: 1px solid #444953;
+  padding: 8px 6px; /* Smaller padding */
+  text-align: left;
+  word-wrap: break-word;
+}
+
+table th {
+    font-weight: 600;
+    color: #ccc;
+}
+
+table tbody tr:nth-child(even) {
+  background-color: #333740;
+}
+
+table tbody tr:hover {
+  background-color: #4a4f5a;
+}
+
+/* Account Info specific */
+.account-info p {
+    margin: 6px 0;
+    text-align: left;
+    padding-left: 10px;
+    font-size: 0.95em;
+}
+.account-info strong {
+    display: inline-block;
+    min-width: 100px;
+    color: #aaa;
+}
+
+/* BTC Display Specific */
+.btc-usdt-display .price-details p {
+    margin: 8px 0;
+    font-size: 1em;
+    text-align: left;
+    padding-left: 15px;
+}
+.btc-usdt-display .price-details strong {
+    display: inline-block;
+    min-width: 130px;
+    color: #aaa;
+}
+
+/* Filter Input */
+.filter-input {
+    padding: 8px 12px;
+    margin-bottom: 15px;
+    width: 95%; /* More responsive */
+    max-width: 500px;
+    border-radius: 4px;
+    border: 1px solid #4a4f5a;
+    background-color: #3a3f4a;
+    color: white;
+    font-size: 0.95em;
+}
+
+.filter-input::placeholder {
+    color: #999;
+}
+
+/* Error Message */
+.error-message {
+    background-color: #cf304a; /* Consistent red */
+    color: white;
+    padding: 12px;
+    margin: 15px auto;
+    border-radius: 5px;
+    max-width: 90%;
+    font-weight: 500;
+    font-size: 0.9em;
+}
+
+/* Backtest Runner */
+.backtest-runner button {
+    padding: 10px 20px;
+    font-size: 1em;
+    cursor: pointer;
+    background-color: #61dafb;
+    border: none;
+    border-radius: 5px;
+    color: #1e222d;
+    font-weight: bold;
+    transition: background-color 0.2s ease;
+    margin-top: 10px;
+}
+
+.backtest-runner button:hover:not(:disabled) {
+    background-color: #4fa8c4;
+}
+
+.backtest-runner button:disabled {
+    background-color: #4a4f5a;
+    cursor: not-allowed;
+    color: #888;
+}
+
+/* Backtest Results */
+.backtest-results .results-summary p {
+    margin: 8px 0;
+    font-size: 1em;
+    text-align: left;
+    padding-left: 15px;
+}
+
+.backtest-results .results-summary strong {
+    display: inline-block;
+    min-width: 200px;
+    color: #aaa;
+}
+
+.backtest-results summary {
+    cursor: pointer;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+/* Chart Section Styles Removed */
