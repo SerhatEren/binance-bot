@@ -6,7 +6,12 @@ import TickerDisplay from './components/TickerDisplay';
 import BtcUsdtDisplay from './components/BtcUsdtDisplay';
 import BacktestRunner from './components/BacktestRunner';
 import BacktestResults from './components/BacktestResults';
+import TradingChart from './components/TradingChart';
 import './App.css';
+
+// Define available options for dropdowns
+const availableChartSymbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'SOLUSDT']; // Add more symbols as desired
+const availableChartIntervals = ['1m', '5m', '15m', '1h', '4h', '1d']; // Subset of Binance intervals
 
 // Make sure the backend URL is correct - adjust if needed
 const BACKEND_URL = 'http://localhost:3001';
@@ -19,6 +24,10 @@ function App() {
     const [btcTicker, setBtcTicker] = useState(null);
     const [backtestResults, setBacktestResults] = useState(null);
     const [error, setError] = useState(null);
+
+    // State for chart parameters - controlled by dropdowns now
+    const [chartSymbol, setChartSymbol] = useState(availableChartSymbols[0]); // Default to first symbol
+    const [chartInterval, setChartInterval] = useState(availableChartIntervals[0]); // Default to first interval
 
     // Initialize socket connection only once
     if (!socket) {
@@ -52,7 +61,7 @@ function App() {
 
         // Listener specifically for BTCUSDT updates
         socket.on('btcTickerUpdate', (btcData) => {
-            // console.log('Received specific BTCUSDT update:', btcData);
+            console.log('[App.jsx] Received btcTickerUpdate:', btcData);
             setBtcTicker(btcData);
             // Optionally update the main tickerData state as well if needed elsewhere
             // setTickerData(prevData => ({ ...prevData, [btcData.s]: btcData }));
@@ -82,7 +91,7 @@ function App() {
             // socket.off('disconnect');
             socket.off('tickerUpdate');
             socket.off('btcTickerUpdate');
-            // klineUpdate listener is managed within CandlestickChart component
+            // klineUpdate listener is managed within TradingChart component
         };
     }, []); // Empty dependency array means this runs once on mount
 
@@ -99,13 +108,53 @@ function App() {
             </header>
             <main>
                 {error && <div className="error-message">Error: {error}</div>}
-                {/* Render Chart */}
                 <div className="data-columns">
                     <AccountInfo info={accountInfo} />
                     <BtcUsdtDisplay ticker={btcTicker} />
                 </div>
+
+                {/* Chart Section */}
+                <div className="chart-controls section">
+                     <h3>Chart Controls</h3>
+                     <div>
+                        <label htmlFor="chartSymbol">Symbol:</label>
+                        <select 
+                            id="chartSymbol" 
+                            value={chartSymbol} 
+                            onChange={(e) => setChartSymbol(e.target.value)}
+                        >
+                            {availableChartSymbols.map(s => (
+                                <option key={s} value={s}>{s}</option>
+                            ))}
+                        </select>
+                    </div>
+                     <div>
+                        <label htmlFor="chartInterval">Interval:</label>
+                        <select 
+                            id="chartInterval" 
+                            value={chartInterval} 
+                            onChange={(e) => setChartInterval(e.target.value)}
+                        >
+                            {availableChartIntervals.map(i => (
+                                <option key={i} value={i}>{i}</option>
+                            ))}
+                        </select>
+                    </div>
+                     <p style={{ fontSize: '0.8em', fontStyle: 'italic', marginTop: '5px' }}>
+                         Note: Real-time updates currently only reflect BTCUSDT/1m due to backend limitations.
+                    </p>
+                </div>
+
+                <TradingChart 
+                    socket={socket} 
+                    symbol={chartSymbol} 
+                    interval={chartInterval} 
+                />
+                {/* Backtesting Section */}
                 <BacktestRunner onResults={handleBacktestResults} />
                 <BacktestResults results={backtestResults} />
+
+                {/* Ticker Table */}
                 <TickerDisplay tickers={tickerData} />
             </main>
         </div>

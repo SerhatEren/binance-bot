@@ -32,9 +32,16 @@ const spotClient = new Spot(apiKey, apiSecret, { baseURL: baseURL });
 // Initialize Binance Websocket Client for streams
 // Note: The base URL for WebsocketStream needs to be explicitly set for testnet
 const wsBaseURL = 'wss://stream.testnet.binance.vision'; // Explicit Testnet WebSocket Stream URL
+
+// Store the active kline stream symbol and interval
+let activeKlineSymbol = 'btcusdt'; // Default, lowercase for stream name
+let activeKlineInterval = '1m';
+let activeKlineStreamName = `${activeKlineSymbol}@kline_${activeKlineInterval}`;
+
 const logger = {
   info: console.log, // You can customize logging
   error: console.error,
+  warn: console.warn // Add warn method
 };
 const callbacks = {
   open: () => logger.info('Connected to Binance WebSocket Stream'),
@@ -43,38 +50,39 @@ const callbacks = {
     try {
         const parsedData = JSON.parse(data);
 
-        // Check if it's the aggregate stream (has .stream property)
+        // Aggregate mini ticker stream
         if (parsedData.stream === '!miniTicker@arr') {
-            // logger.info('Received aggregate ticker update');
-            io.emit('tickerUpdate', parsedData.data); // Emit array of tickers
+            io.emit('tickerUpdate', parsedData.data);
         }
-        // Check if it LOOKS like a single miniTicker event (check for event type 'e')
-        else if (parsedData.e === '24hrMiniTicker' && parsedData.s === 'BTCUSDT') {
-             // Check if it is the BTCUSDT specific one we subscribed to
-             io.emit('btcTickerUpdate', parsedData); // Emit the whole object
+        // Individual BTCUSDT mini ticker updates (keep for specific display if needed)
+        else if (parsedData.stream === 'btcusdt@miniTicker') {
+             logger.info('[Backend] Received btcusdt@miniTicker:', JSON.stringify(parsedData.data)); // Log received data
+             io.emit('btcTickerUpdate', parsedData.data);
         }
-        // Handle Kline updates for BTCUSDT 1h
-        // else if (parsedData.stream === 'btcusdt@kline_1h') {
-        //     // Data structure: { e: 'kline', E: ..., s: 'BTCUSDT', k: { t:..., T:..., ... } }
-        //     const kline = parsedData.data.k;
-        //     // Format for lightweight-charts: { time: candle.t / 1000, open: parseFloat(candle.o), high: parseFloat(candle.h), low: parseFloat(candle.l), close: parseFloat(candle.c) }
-        //     const formattedKline = {
-        //         time: kline.t / 1000, // Convert ms to seconds for lightweight-charts
-        //         open: parseFloat(kline.o),
-        //         high: parseFloat(kline.h),
-        //         low: parseFloat(kline.l),
-        //         close: parseFloat(kline.c),
-        //         // volume: parseFloat(kline.v) // Optional volume data
-        //     };
-        //     io.emit('klineUpdate', formattedKline); // Emit the formatted kline update
-        // }
-        // Log anything else unexpected
-        // else {
-        //     logger.info(`Received unhandled message structure: ${JSON.stringify(parsedData).substring(0, 200)}...`);
-        // }
+        // Handle K-line stream updates
+        else if (parsedData.stream === activeKlineStreamName) {
+             const kline = parsedData.data.k;
+            // Check if the kline is closed (kline.x === true)
+            // For real-time updates, we often want the latest tick update, not just closed candles.
+            // Lightweight charts can handle updates to the current candle.
+            const formattedKline = {
+                time: kline.t / 1000, // Kline open time (seconds)
+                open: parseFloat(kline.o),
+                high: parseFloat(kline.h),
+                low: parseFloat(kline.l),
+                close: parseFloat(kline.c),
+                // volume: parseFloat(kline.v) // Optional
+            };
+            // Emit to clients listening for this specific symbol/interval combo
+            // Use a dynamic event name based on the stream
+            io.emit(`klineUpdate_${activeKlineSymbol}_${activeKlineInterval}`, formattedKline);
+            // logger.info(`Sent kline update: ${JSON.stringify(formattedKline)}`); // Optional: Log sent updates
+        }
+
     } catch (error) {
+        // Handle errors when parsing WebSocket messages
         logger.error('Failed to parse WebSocket message or identify structure:', error);
-        // Log raw data only if parsing fails, as stringify might fail too on large/weird data
+        // Log the raw data if it's a JSON parsing error
         if (error instanceof SyntaxError) {
              logger.error('Raw message data causing parse error:', data);
         }
@@ -90,6 +98,10 @@ wsStreamClient.subscribe('!miniTicker@arr');
 // Subscribe specifically to BTCUSDT Mini Ticker stream
 logger.info('Subscribing to btcusdt@miniTicker');
 wsStreamClient.subscribe('btcusdt@miniTicker'); // Use lowercase symbol
+
+// Subscribe to the default K-line stream
+logger.info(`Subscribing to ${activeKlineStreamName}`);
+wsStreamClient.subscribe(activeKlineStreamName);
 
 // REST API Endpoints
 app.get('/api/account', async (req, res) => {
@@ -201,19 +213,81 @@ async function runBacktest(symbol, interval, periods, initialCapital) {
 }
 
 app.get('/api/backtest', async (req, res) => {
-    // Simple fixed parameters for now
-    const symbol = 'BTCUSDT';
-    const interval = '1h';
-    const initialCapital = 10000;
-    const result = await runBacktest(symbol, interval, 168, initialCapital);
+    // Get parameters from query string, with defaults
+    const symbol = req.query.symbol?.toUpperCase() || 'BTCUSDT'; // Default to BTCUSDT if not provided
+    const interval = req.query.interval || '1h';          // Default to 1h if not provided
+    const strategy = req.query.strategy || 'SMA_CROSSOVER'; // Default strategy
+    const initialCapital = parseInt(req.query.capital) || 10000; // Default capital
+
+    logger.info(`Received backtest request: Symbol=${symbol}, Interval=${interval}, Strategy=${strategy}, Capital=${initialCapital}`);
+
+    // Currently, only SMA_CROSSOVER is implemented
+    if (strategy !== 'SMA_CROSSOVER') {
+        logger.warn(`Strategy '${strategy}' not implemented. Defaulting to SMA_CROSSOVER.`);
+        // In a real scenario, you might return an error or implement the strategy
+        // For now, we just proceed with the default
+    }
+
+    // TODO: Fetch appropriate number of periods based on strategy needs
+    // Hardcoding periods for now
+    const periods = 168; // Example: 7 days of 1h data
+
+    const result = await runBacktest(symbol, interval, periods, initialCapital);
     res.json(result);
+});
+
+// New endpoint to fetch historical K-line data
+app.get('/api/klines', async (req, res) => {
+    const { symbol, interval, limit = 500 } = req.query; // Default limit to 500 candles
+
+    if (!symbol || !interval) {
+        return res.status(400).json({ error: 'Missing required query parameters: symbol and interval' });
+    }
+
+    try {
+        logger.info(`Fetching klines for ${symbol}, interval ${interval}, limit ${limit}`);
+        const klinesResponse = await spotClient.klines(symbol.toUpperCase(), interval, { limit: parseInt(limit) });
+
+        // Format data for lightweight-charts
+        // Binance kline format: [openTime, open, high, low, close, volume, closeTime, quoteAssetVolume, numberOfTrades, takerBuyBaseAssetVolume, takerBuyQuoteAssetVolume, ignore]
+        // Lightweight charts format: { time: seconds, open, high, low, close }
+        const formattedKlines = klinesResponse.data.map(k => ({
+            time: k[0] / 1000, // Convert openTime milliseconds to seconds
+            open: parseFloat(k[1]),
+            high: parseFloat(k[2]),
+            low: parseFloat(k[3]),
+            close: parseFloat(k[4]),
+            // volume: parseFloat(k[5]) // Optional: include volume if needed later
+        }));
+
+        res.json(formattedKlines);
+
+    } catch (error) {
+        logger.error(`Error fetching klines for ${symbol} ${interval}:`, error.response ? error.response.data : error.message);
+        res.status(error.response?.status || 500).json({ 
+            error: 'Failed to fetch kline data', 
+            details: error.response?.data || error.message 
+        });
+    }
 });
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
     console.log('A user connected to Socket.IO:', socket.id);
-    // Optionally send initial data or welcome message
-    // socket.emit('welcome', 'Connected to Binance Bot Backend');
+
+    // **Future Enhancement Idea:**
+    // Handle requests from frontend to change the active kline stream
+    // socket.on('subscribeToKline', ({ symbol, interval }) => {
+    //     // Unsubscribe from old stream
+    //     wsStreamClient.unsubscribe(activeKlineStreamName);
+    //     // Update active stream vars
+    //     activeKlineSymbol = symbol.toLowerCase();
+    //     activeKlineInterval = interval;
+    //     activeKlineStreamName = `${activeKlineSymbol}@kline_${activeKlineInterval}`;
+    //     // Subscribe to new stream
+    //     wsStreamClient.subscribe(activeKlineStreamName);
+    //     logger.info(`Switched subscription to ${activeKlineStreamName}`);
+    // });
 
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
@@ -228,9 +302,6 @@ server.listen(port, () => {
 // Graceful shutdown
 process.on('SIGINT', () => {
     console.log('Shutting down WebSocket client...');
-    // Unsubscribe if needed, though disconnect should handle it
-    wsStreamClient.unsubscribe('!miniTicker@arr');
-    wsStreamClient.unsubscribe('btcusdt@miniTicker');
     wsStreamClient.disconnect();
     console.log('Closing server...');
     server.close(() => {

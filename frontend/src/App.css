@@ -252,3 +252,39 @@ table tbody tr:hover {
 }
 
 /* Chart Section Styles Removed */
+
+.trading-chart .error-message {
+  color: #ef5350; /* Red for errors */
+  margin-top: 10px;
+}
+
+/* Ensure the chart container div has a specific size */
+.trading-chart > div[style*="position: relative"] {
+  min-height: 400px; /* Give it a minimum height */
+  width: 100%; /* Allow it to take available width */
+  border: 1px solid #eee; /* Add border for visibility */
+}
+
+.chart-controls {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    border: 1px solid #eee;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap; /* Allow controls to wrap on smaller screens */
+}
+
+.chart-controls label {
+    margin-right: 8px;
+    font-weight: bold;
+}
+
+.chart-controls select,
+.chart-controls input {
+    padding: 5px 8px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}

@@ -2,7 +2,7 @@ import React from 'react';
 
 const AccountInfo = ({ info }) => {
     // Define the assets you want to display
-    const desiredAssets = ['BTC', 'USDT', 'BNB', 'ETH']; // Add or remove assets as needed
+    const desiredAssets = ['BTC', 'USDT', 'BNB', 'ETH', 'ADA', 'SOL']; // Add or remove assets as needed
 
     if (!info) {
         return <div className="section">Loading Account Info...</div>;
